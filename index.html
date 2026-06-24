@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chain Graph Defense Simulator</title>
+    <title>Eternal Edge Defense Simulator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; }
@@ -13,7 +13,6 @@
         .node:hover circle { filter: brightness(0.9); }
         .edge { cursor: pointer; transition: stroke-width 0.2s, stroke 0.2s; }
         .edge:hover { stroke-width: 6; stroke: #ff7f50; }
-        .bg-ellipse { fill: transparent; stroke: black; stroke-width: 2; pointer-events: none; }
         
         /* Custom animation for Game Over */
         @keyframes pulse-red {
@@ -27,54 +26,44 @@
 
 <div id="game-container">
     <div class="mb-4 text-center">
-        <h1 class="text-2xl font-bold text-slate-800 mb-2">Eternal Edge Defense: Level 3 Chain Graph</h1>
+        <h1 class="text-2xl font-bold text-slate-800 mb-2">Eternal Edge Defense: Random Graphs</h1>
+        
+        <!-- Configuration Panel -->
+        <div class="bg-slate-100 p-4 rounded-lg flex flex-wrap justify-center items-end gap-4 mb-4 border border-slate-200">
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">Graph Tiers (Complexity)</label>
+                <input type="number" id="input-tiers" min="2" max="5" value="3" class="w-24 px-3 py-2 border rounded focus:outline-none focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-slate-700 mb-1">Allowed Guards</label>
+                <input type="number" id="input-guards" min="1" max="15" value="3" class="w-24 px-3 py-2 border rounded focus:outline-none focus:border-blue-500">
+            </div>
+            <button id="btn-generate" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded shadow transition">
+                Generate Random Graph
+            </button>
+        </div>
+
         <div id="status-box" class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 rounded text-lg font-semibold shadow-inner min-h-[4rem] flex items-center justify-center">
-            Phase 1: SETUP - Click nodes to place your guards.
+            Phase 1: SETUP - Place your guards.
         </div>
     </div>
 
     <div class="flex justify-center gap-4 mb-4">
         <button id="btn-start" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-6 rounded shadow transition">Lock Guards & Start Game</button>
-        <button id="btn-reset" class="bg-slate-500 hover:bg-slate-600 text-white font-bold py-2 px-6 rounded shadow transition">Reset Game</button>
+        <button id="btn-reset" class="bg-slate-500 hover:bg-slate-600 text-white font-bold py-2 px-6 rounded shadow transition">Reset Phase</button>
     </div>
 
     <div class="border-2 border-slate-200 rounded-lg overflow-hidden bg-white">
-        <!-- Expanded viewBox to fit 3 tiers vertically -->
         <svg id="graph-svg" viewBox="0 0 800 1000"></svg>
     </div>
 </div>
 
 <script>
-    // --- Graph Data ---
-    const nodes = [
-        // U1 (3 nodes)
-        { id: 0, x: 200, y: 100 }, { id: 1, x: 200, y: 180 }, { id: 2, x: 200, y: 260 },
-        // U2 (2 nodes)
-        { id: 3, x: 200, y: 400 }, { id: 4, x: 200, y: 480 },
-        // U3 (4 nodes)
-        { id: 5, x: 200, y: 620 }, { id: 6, x: 200, y: 700 }, { id: 7, x: 200, y: 780 }, { id: 8, x: 200, y: 860 },
-        
-        // V1 (2 nodes)
-        { id: 9, x: 600, y: 140 }, { id: 10, x: 600, y: 220 },
-        // V2 (3 nodes)
-        { id: 11, x: 600, y: 360 }, { id: 12, x: 600, y: 440 }, { id: 13, x: 600, y: 520 },
-        // V3 (3 nodes)
-        { id: 14, x: 600, y: 660 }, { id: 15, x: 600, y: 740 }, { id: 16, x: 600, y: 820 }
-    ];
-
-    // Generate edges algorithmically based on Chain Graph rules
-    const edges = [];
-    const addEdges = (uList, vList) => {
-        uList.forEach(u => vList.forEach(v => edges.push({u, v})));
-    };
-    
-    const U1 = [0, 1, 2], U2 = [3, 4], U3 = [5, 6, 7, 8];
-    const V1 = [9, 10], V2 = [11, 12, 13], V3 = [14, 15, 16];
-
-    // Nested neighborhoods
-    addEdges(U1, V1);
-    addEdges(U2, V1); addEdges(U2, V2);
-    addEdges(U3, V1); addEdges(U3, V2); addEdges(U3, V3);
+    // --- Dynamic Graph Data ---
+    let nodes = [];
+    let edges = [];
+    let bgShapes = [];
+    let maxGuardsAllowed = 3;
 
     // --- Game State ---
     let phase = 1; // 1: Setup, 2: Attack, 3: Defend, 4: Game Over
@@ -85,7 +74,91 @@
     const svg = document.getElementById('graph-svg');
     const statusBox = document.getElementById('status-box');
 
+    // --- Generator Function ---
+    function generateRandomGraph() {
+        nodes = [];
+        edges = [];
+        bgShapes = [];
+        guards.clear();
+        attackedEdge = null;
+        selectedGuard = null;
+        phase = 1;
+        
+        let numTiers = parseInt(document.getElementById('input-tiers').value) || 3;
+        numTiers = Math.max(2, Math.min(5, numTiers)); // clamp between 2 and 5
+        maxGuardsAllowed = parseInt(document.getElementById('input-guards').value) || 3;
+
+        let uTiers = [];
+        let vTiers = [];
+        let nodeId = 0;
+
+        // Generate node clusters
+        for(let i=0; i<numTiers; i++) {
+            let uSize = Math.floor(Math.random() * 3) + 1; // 1 to 3 nodes
+            let vSize = Math.floor(Math.random() * 3) + 1;
+            
+            let uCluster = []; let vCluster = [];
+            for(let j=0; j<uSize; j++) uCluster.push(nodeId++);
+            for(let j=0; j<vSize; j++) vCluster.push(nodeId++);
+            
+            uTiers.push(uCluster);
+            vTiers.push(vCluster);
+        }
+
+        // Layout nodes
+        let currentYU = 100;
+        uTiers.forEach(tier => {
+            tier.forEach(id => {
+                nodes.push({ id: id, x: 200, y: currentYU });
+                currentYU += 70;
+            });
+            currentYU += 60; // Gap between tiers
+        });
+
+        let currentYV = 100;
+        vTiers.forEach(tier => {
+            tier.forEach(id => {
+                nodes.push({ id: id, x: 600, y: currentYV });
+                currentYV += 70;
+            });
+            currentYV += 60; // Gap between tiers
+        });
+
+        // Set ViewBox dynamically based on tallest side
+        let maxHeight = Math.max(currentYU, currentYV) + 50;
+        svg.setAttribute('viewBox', `0 0 800 ${maxHeight}`);
+
+        // Add exactly two Outer Ellipses to group the left and right sides
+        bgShapes.push({ cx: 200, cy: maxHeight/2, rx: 90, ry: (maxHeight/2) - 20 });
+        bgShapes.push({ cx: 600, cy: maxHeight/2, rx: 90, ry: (maxHeight/2) - 20 });
+
+        // Generate Edges: Chain Graph Rule (U_i connects to V_1 ... V_i)
+        for(let i=0; i<numTiers; i++) {
+            for(let j=0; j<=i; j++) {
+                uTiers[i].forEach(u => {
+                    vTiers[j].forEach(v => {
+                        edges.push({u, v});
+                    });
+                });
+            }
+        }
+
+        updateStatusMessage();
+        document.getElementById('btn-start').classList.remove("opacity-50", "cursor-not-allowed");
+        draw();
+    }
+
     // --- Helpers ---
+    function updateStatusMessage() {
+        if (phase === 1) {
+            setStatus(`Phase 1: SETUP - Place your guards (${guards.size} / ${maxGuardsAllowed})`, "blue");
+        } else if (phase === 2) {
+            setStatus("ATTACKER: Click an edge to attack.", "slate");
+        } else if (phase === 4) {
+            setStatus(`GAME OVER! No guard can reach edge (${attackedEdge.u}, ${attackedEdge.v}). ATTACKER WINS!`, "gameover");
+        }
+    }
+
     function setStatus(msg, type="blue") {
         const baseClasses = "border-l-4 p-4 rounded text-lg font-semibold shadow-inner min-h-[4rem] flex items-center justify-center transition-colors duration-300";
         let colorClasses = "";
@@ -108,25 +181,19 @@
     function draw() {
         svg.innerHTML = ''; // Clear SVG
 
-        // 1. Draw Background Ellipses (Nested Clusters)
-        const bgShapes = [
-            // Outer ellipses encompassing all 3 levels
-            { cx: 200, cy: 480, rx: 80, ry: 460 }, // U Outer
-            { cx: 600, cy: 480, rx: 80, ry: 460 }, // V Outer
-            // Inner ellipses
-            { cx: 200, cy: 180, rx: 50, ry: 120 }, // U1
-            { cx: 200, cy: 440, rx: 50, ry: 80 },  // U2
-            { cx: 200, cy: 740, rx: 50, ry: 160 }, // U3
-            { cx: 600, cy: 180, rx: 50, ry: 80 },  // V1
-            { cx: 600, cy: 440, rx: 50, ry: 120 }, // V2
-            { cx: 600, cy: 740, rx: 50, ry: 120 }  // V3
-        ];
-        
+        // 1. Draw Background Outer Ellipses
         bgShapes.forEach(shape => {
             const el = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
             el.setAttribute("cx", shape.cx); el.setAttribute("cy", shape.cy);
             el.setAttribute("rx", shape.rx); el.setAttribute("ry", shape.ry);
-            el.setAttribute("class", "bg-ellipse");
+            
+            // Explicitly force transparency and style the boundary
+            el.setAttribute("fill", "transparent");
+            el.setAttribute("stroke", "#64748b"); // Nice slate-gray color
+            el.setAttribute("stroke-width", "2");
+            el.setAttribute("stroke-dasharray", "8,8"); // Creates a clean dashed border
+            el.setAttribute("pointer-events", "none"); // Prevents it from blocking clicks
+            
             svg.appendChild(el);
         });
 
@@ -134,7 +201,6 @@
         edges.forEach((edge) => {
             const n1 = nodes.find(n => n.id === edge.u);
             const n2 = nodes.find(n => n.id === edge.v);
-            
             const isAttacked = attackedEdge && (attackedEdge.u === edge.u && attackedEdge.v === edge.v);
             
             const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -142,10 +208,10 @@
             line.setAttribute("x2", n2.x); line.setAttribute("y2", n2.y);
             
             if (isAttacked) {
-                line.setAttribute("stroke", phase === 4 ? "#991b1b" : "#ef4444"); // Darker red on game over
+                line.setAttribute("stroke", phase === 4 ? "#991b1b" : "#ef4444"); 
                 line.setAttribute("stroke-width", "8");
             } else {
-                line.setAttribute("stroke", "#cbd5e1"); // Slate-300
+                line.setAttribute("stroke", "#cbd5e1"); 
                 line.setAttribute("stroke-width", "2"); 
                 line.setAttribute("class", "edge");
             }
@@ -155,27 +221,22 @@
                 if (phase === 2) {
                     attackedEdge = edge;
                     
-                    // Check if already defended
                     if (guards.has(edge.u) || guards.has(edge.v)) {
                         setStatus(`Attacker hit edge (${edge.u}, ${edge.v}). Automatically DEFENDED!`, "green");
-                        attackedEdge = null; // Flash effect then clear
-                        setTimeout(draw, 1000);
+                        attackedEdge = null; 
+                        setTimeout(() => { updateStatusMessage(); draw(); }, 1200);
                     } else {
-                        // --- GAME OVER LOGIC CHECK ---
-                        // Does the defender have any legal move?
+                        // GAME OVER LOGIC CHECK
                         let canDefend = false;
                         guards.forEach(g => {
-                            // A guard can defend if it is adjacent to EITHER endpoint of the attacked edge
-                            if (areAdjacent(g, edge.u) || areAdjacent(g, edge.v)) {
-                                canDefend = true;
-                            }
+                            if (areAdjacent(g, edge.u) || areAdjacent(g, edge.v)) canDefend = true;
                         });
 
                         if (!canDefend) {
-                            phase = 4; // GAME OVER Phase
-                            setStatus(`GAME OVER! No guard can reach edge (${edge.u}, ${edge.v}). ATTACKER WINS!`, "gameover");
+                            phase = 4;
+                            updateStatusMessage();
                         } else {
-                            phase = 3; // Continue to Defend Phase
+                            phase = 3; 
                             setStatus(`Attacker hit edge (${edge.u}, ${edge.v})! DEFENDER: Select a guard to slide.`, "red");
                         }
                     }
@@ -183,12 +244,8 @@
                 }
             });
 
-            // Draw attacked edges on top
-            if (isAttacked) {
-                svg.appendChild(line);
-            } else {
-                svg.prepend(line);
-            }
+            if (isAttacked) svg.appendChild(line);
+            else svg.prepend(line);
         });
 
         // 3. Draw Nodes
@@ -204,14 +261,13 @@
             const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
             circle.setAttribute("r", isGuard ? "22" : "18");
             
-            // Coloring logic
             if (isGuard) {
-                circle.setAttribute("fill", phase === 4 ? "#b45309" : "#fbbf24"); // Darker gold on game over
+                circle.setAttribute("fill", phase === 4 ? "#b45309" : "#fbbf24");
                 circle.setAttribute("stroke", isSelected ? "#000000" : "#78350f");
                 circle.setAttribute("stroke-width", isSelected ? "4" : "2");
                 if (isSelected) circle.setAttribute("stroke-dasharray", "4,4");
             } else {
-                circle.setAttribute("fill", "#93c5fd"); // Light blue
+                circle.setAttribute("fill", "#93c5fd");
                 circle.setAttribute("stroke", isAttackedEndpoint && phase === 3 ? "#ef4444" : "#2563eb");
                 circle.setAttribute("stroke-width", isAttackedEndpoint && phase === 3 ? "4" : "2");
             }
@@ -223,22 +279,27 @@
             text.setAttribute("fill", isGuard ? (phase === 4 ? "#fed7aa" : "#000") : "#1e3a8a");
             text.textContent = node.id;
 
-            // Node Click Event (Defender)
+            // Node Click Event (Defender & Setup)
             g.addEventListener('click', () => {
                 if (phase === 1) {
-                    // Setup Phase: Toggle guards
-                    if (guards.has(node.id)) guards.delete(node.id);
-                    else guards.add(node.id);
+                    if (guards.has(node.id)) {
+                        guards.delete(node.id);
+                        updateStatusMessage();
+                    } else if (guards.size < maxGuardsAllowed) {
+                        guards.add(node.id);
+                        updateStatusMessage();
+                    } else {
+                        setStatus(`Budget Limit Reached! You can only place ${maxGuardsAllowed} guards.`, "red");
+                        setTimeout(updateStatusMessage, 2000);
+                    }
                     draw();
                 } 
                 else if (phase === 3) {
-                    // Defend Phase
                     if (guards.has(node.id)) {
                         selectedGuard = selectedGuard === node.id ? null : node.id;
                         draw();
                     } 
                     else if (selectedGuard !== null) {
-                        // Check if move is valid
                         if (!isAttackedEndpoint) {
                             setStatus("Invalid! Guard must move to one of the attacked endpoints.", "red");
                             return;
@@ -248,13 +309,13 @@
                             return;
                         }
                         
-                        // Execute Move
                         guards.delete(selectedGuard);
                         guards.add(node.id);
                         attackedEdge = null;
                         selectedGuard = null;
                         phase = 2;
                         setStatus("Defense successful! Attacker, choose next edge.", "green");
+                        setTimeout(() => { if(phase===2) updateStatusMessage(); draw(); }, 1200);
                         draw();
                     }
                 }
@@ -266,16 +327,19 @@
         });
     }
 
-    // --- Buttons ---
+    // --- Button Listeners ---
+    document.getElementById('btn-generate').addEventListener('click', generateRandomGraph);
+
     document.getElementById('btn-start').addEventListener('click', () => {
         if (phase === 1) {
-            if (guards.size === 0) {
-                alert("Please place at least one guard before starting!");
+            if (guards.size !== maxGuardsAllowed) {
+                setStatus(`You must place all ${maxGuardsAllowed} guards before starting!`, "red");
+                setTimeout(updateStatusMessage, 2000);
                 return;
             }
             phase = 2;
             document.getElementById('btn-start').classList.add("opacity-50", "cursor-not-allowed");
-            setStatus("Game Started! ATTACKER: Click an edge to attack.", "slate");
+            updateStatusMessage();
             draw();
         }
     });
@@ -286,12 +350,12 @@
         attackedEdge = null;
         selectedGuard = null;
         document.getElementById('btn-start').classList.remove("opacity-50", "cursor-not-allowed");
-        setStatus("Phase 1: SETUP - Click nodes to place your guards.", "blue");
+        updateStatusMessage();
         draw();
     });
 
-    // Initial render
-    draw();
+    // Run once on load
+    generateRandomGraph();
 </script>
 
 </body>
