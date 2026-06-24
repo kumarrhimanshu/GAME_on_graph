@@ -38,7 +38,9 @@ Beware the Death Trap: If the attacker forces your guards into the "dead-end" cl
 
 🚀 Play Live
 
-Play the Simulator Live Here!
+👉 [**Click Here to Play the Simulator Live!**](https://kumarrhimanshu.github.io/GAME_on_graph/)
+
+(If the text above isn't clickable, just click or copy this direct URL: https://kumarrhimanshu.github.io/GAME_on_graph/ )
 
 🛠️ Built With
 
