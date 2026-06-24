@@ -1,5 +1,4 @@
-# GAME_on_graph
-🛡️ Eternal Edge Defense: Chain Graph Simulator
+Eternal Edge Defense: Chain Graph Simulator
 
 An interactive, turn-based graph theory game demonstrating the Eternal Relaxed Vertex Cover (ERVC) problem on complex, multi-tiered Chain Graphs.
 
@@ -39,7 +38,7 @@ Beware the Death Trap: If the attacker forces your guards into the "dead-end" cl
 
 🚀 Play Live
 
-(Add your GitHub Pages link here once hosted!)
+Play the Simulator Live Here!
 
 🛠️ Built With
 
