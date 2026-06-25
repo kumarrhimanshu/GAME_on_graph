@@ -36,15 +36,19 @@ Click one of your guards, then click an adjacent empty node that connects to the
 
 Beware the Death Trap: If the attacker forces your guards into the "dead-end" clusters of the chain graph, they can snap your defense line!
 
-🎥 Video Demonstration
+## ** 🎥 Video Demonstration**## ** 🎥 Video Demonstration**
 
 The following demonstration provides a walkthrough of a typical gameplay session. It showcases the two-phase workflow of the simulator: starting with the Setup Phase (deploying guards according to a budget), followed by a live Attack and Defense round where a guard is slid along an edge to successfully resolve an undefended threat.
+
+
+[**Click Here to Play Video\!**](https://drive.google.com/file/d/1am0dI4kAGPvnYtFZAZYvszVMrP7xJa3Q/view?usp=sharing))
+
 
 
 ## **🚀 Play Live**
 
 👉 [**Click Here to Play the Simulator Live\!**](https://kumarrhimanshu.github.io/GAME_on_graph/)
 
-*(If the text above isn't clickable, just click or copy this direct URL: https://kumarrhimanshu.github.io/GAME\_on\_graph/ )*
+*(If the text above isn't clickable, just click or copy this direct URL: (https://kumarrhimanshu.github.io/GAME_on_graph/)*
 
 
