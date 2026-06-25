@@ -35,3 +35,8 @@ The following demonstration provides a walkthrough of a typical gameplay session
 **[👉 Click Here to Play the Simulator Live!](https://kumarrhimanshu.github.io/GAME_on_graph/chain_graph_game.html)**
 
 ---
+
+## 🛠️ Built With
+* HTML5 / CSS3 (Tailwind CSS)
+* Vanilla JavaScript
+* SVG-based dynamic graph rendering
