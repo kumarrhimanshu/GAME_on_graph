@@ -8,49 +8,52 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #f8fafc; padding: 20px; }
         #game-container { max-width: 900px; margin: 0 auto; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); }
-        svg { width: 100%; height: auto; display: block; }
-        .node { cursor: pointer; }
-        .edge { cursor: pointer; transition: 0.2s; }
-        .animate-gameover { animation: pulse-red 2s infinite; }
-        @keyframes pulse-red { 0%, 100% { background-color: #fee2e2; } 50% { background-color: #fca5a5; } }
+        svg { width: 100%; height: auto; display: block; user-select: none; }
+        .node { cursor: pointer; transition: 0.2s; }
+        .node:hover circle { filter: brightness(0.9); }
     </style>
 </head>
 <body>
 
 <div id="game-container">
     <h1 class="text-2xl font-bold text-center mb-4">Strict Chain Graph: t-Partition Challenge</h1>
-    <div class="bg-slate-100 p-4 rounded-lg flex justify-center items-center gap-6 mb-4">
+    <div class="bg-slate-100 p-4 rounded-lg flex justify-center items-center gap-6 mb-4 border border-slate-200">
         <div>
-            <label class="block text-sm font-bold">Number of Partitions (t)</label>
-            <input type="number" id="input-t" min="2" max="6" value="4" class="w-20 p-2 border rounded">
+            <label class="block text-sm font-bold text-slate-700">Number of Partitions (t)</label>
+            <input type="number" id="input-t" min="2" max="6" value="4" class="w-20 p-2 border rounded focus:outline-none focus:border-indigo-500">
         </div>
-        <button id="btn-generate" class="bg-indigo-600 text-white px-6 py-2 rounded font-bold">Generate Strict Chain</button>
+        <button id="btn-generate" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded font-bold shadow transition">Generate Graph</button>
     </div>
 
-    <div id="status-box" class="bg-blue-100 border-l-4 border-blue-500 p-4 mb-4 font-semibold">Setup: Generate graph to start.</div>
-    <div class="flex justify-center gap-4 mb-4">
-        <button id="btn-start" class="bg-emerald-500 text-white py-2 px-6 rounded font-bold">Lock Guards & Start</button>
-        <button id="btn-reset" class="bg-slate-500 text-white py-2 px-6 rounded font-bold">Reset</button>
+    <div id="status-box" class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4 font-bold rounded shadow-inner text-center">
+        Set t and click Generate.
     </div>
-    <svg id="graph-svg" viewBox="0 0 800 600" class="border rounded bg-white"></svg>
+
+    <div class="flex justify-center gap-4 mb-4">
+        <button id="btn-start" class="bg-emerald-500 hover:bg-emerald-600 text-white py-2 px-6 rounded font-bold shadow transition">Lock Guards & Start</button>
+        <button id="btn-reset" class="bg-slate-500 hover:bg-slate-600 text-white py-2 px-6 rounded font-bold shadow transition">Reset</button>
+    </div>
+
+    <div class="border-2 border-slate-200 rounded-lg bg-white overflow-hidden">
+        <svg id="graph-svg" viewBox="0 0 800 600"></svg>
+    </div>
 </div>
 
 <script>
     let nodes = []; let edges = []; let guards = new Set();
-    let phase = 1; let maxGuardsAllowed = 0; let attackedEdge = null; let selectedGuard = null;
+    let phase = 1; let maxGuardsAllowed = 0; let attackedEdge = null;
 
     function generateStrictChain() {
         nodes = []; edges = []; guards.clear(); phase = 1; attackedEdge = null;
         let t = parseInt(document.getElementById('input-t').value);
         maxGuardsAllowed = Math.ceil((2 * t) / 3);
         
-        // Build Nodes: X_i at x=200, Y_i at x=600
+        // Generate nodes
         for(let i=0; i<t; i++) {
-            nodes.push({ id: `x${i+1}`, x: 250, y: 100 + (i * 80) });
-            nodes.push({ id: `y${i+1}`, x: 550, y: 100 + (i * 80) });
+            nodes.push({ id: `x${i+1}`, x: 200, y: 100 + (i * 80) });
+            nodes.push({ id: `y${i+1}`, x: 600, y: 100 + (i * 80) });
         }
-
-        // Build Edges: Nested Chain Graph (X_i connects to Y_1 ... Y_i)
+        // Generate edges (Nested: X_i connects to Y_1 ... Y_i)
         for(let i=0; i<t; i++) {
             for(let j=0; j<=i; j++) {
                 edges.push({ u: `x${i+1}`, v: `y${j+1}` });
@@ -62,6 +65,20 @@
     function draw() {
         const svg = document.getElementById('graph-svg');
         svg.innerHTML = '';
+        
+        // 1. Draw dashed ovals
+        const t = parseInt(document.getElementById('input-t').value);
+        const ovalHeight = (t * 80) / 2;
+        [200, 600].forEach(cx => {
+            const el = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+            el.setAttribute("cx", cx); el.setAttribute("cy", 100 + ((t-1)*80)/2);
+            el.setAttribute("rx", 70); el.setAttribute("ry", ovalHeight);
+            el.setAttribute("fill", "transparent"); el.setAttribute("stroke", "#94a3b8");
+            el.setAttribute("stroke-width", "2"); el.setAttribute("stroke-dasharray", "8,8");
+            svg.appendChild(el);
+        });
+
+        // 2. Draw Edges
         edges.forEach(e => {
             const n1 = nodes.find(n => n.id === e.u), n2 = nodes.find(n => n.id === e.v);
             const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
@@ -69,44 +86,37 @@
             line.setAttribute("x2", n2.x); line.setAttribute("y2", n2.y);
             line.setAttribute("stroke", (attackedEdge?.u === e.u && attackedEdge?.v === e.v) ? "red" : "#cbd5e1");
             line.setAttribute("stroke-width", "2");
-            line.onclick = () => handleEdgeClick(e);
+            line.onclick = () => { if(phase===2) { attackedEdge = e; phase=3; draw(); updateStatus(); } };
             svg.appendChild(line);
         });
+
+        // 3. Draw Nodes with labels
         nodes.forEach(n => {
             const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            g.setAttribute("class", "node");
             const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
             circle.setAttribute("cx", n.x); circle.setAttribute("cy", n.y);
-            circle.setAttribute("r", 20);
+            circle.setAttribute("r", 22);
             circle.setAttribute("fill", guards.has(n.id) ? "#fbbf24" : "#93c5fd");
-            g.onclick = () => handleNodeClick(n.id);
-            g.appendChild(circle);
-            svg.appendChild(g);
+            
+            const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            text.setAttribute("x", n.x); text.setAttribute("y", n.y + 6);
+            text.setAttribute("text-anchor", "middle");
+            text.setAttribute("font-weight", "bold");
+            text.setAttribute("font-size", "12");
+            text.textContent = n.id;
+
+            g.onclick = () => { if(phase===1) { guards.has(n.id) ? guards.delete(n.id) : (guards.size < maxGuardsAllowed && guards.add(n.id)); draw(); } };
+            g.appendChild(circle); g.appendChild(text); svg.appendChild(g);
         });
-    }
-
-    function handleNodeClick(id) {
-        if (phase === 1) {
-            if (guards.has(id)) guards.delete(id);
-            else if (guards.size < maxGuardsAllowed) guards.add(id);
-            draw(); updateStatus();
-        }
-    }
-
-    function handleEdgeClick(e) {
-        if (phase === 2) {
-            attackedEdge = e;
-            if (!guards.has(e.u) && !guards.has(e.v)) { phase = 3; document.getElementById('status-box').innerText = "Edge attacked! Slide a guard to defend."; }
-            draw();
-        }
     }
 
     function updateStatus() {
-        document.getElementById('status-box').innerText = phase === 1 ? 
-            `Phase 1: Place ${maxGuardsAllowed} guards.` : "Phase 2: Attacker turn.";
+        document.getElementById('status-box').innerText = phase === 1 ? `Setup: Place ${maxGuardsAllowed} guards.` : "Game: Click an edge to attack.";
     }
 
     document.getElementById('btn-generate').onclick = generateStrictChain;
-    document.getElementById('btn-start').onclick = () => { if(guards.size === maxGuardsAllowed) { phase = 2; updateStatus(); } };
+    document.getElementById('btn-start').onclick = () => { if(guards.size === maxGuardsAllowed) { phase=2; updateStatus(); } };
     document.getElementById('btn-reset').onclick = generateStrictChain;
     generateStrictChain();
 </script>
