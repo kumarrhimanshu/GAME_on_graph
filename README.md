@@ -1,6 +1,13 @@
-Eternal Edge Defense: Chain Graph Simulator
+Eternal Edge Defense: Graph Theory Simulators
+An interactive, turn-based graph theory project demonstrating the Eternal Relaxed Vertex Cover (ERVC) problem. These simulators provide visual proof of how guard mobility impacts coverage requirements on complex, multi-tiered graph structures.
 
-An interactive, turn-based graph theory game demonstrating the Eternal Relaxed Vertex Cover (ERVC) problem on complex, multi-tiered Chain Graphs.
+🎮 The Simulators
+1. General ERVC Simulator (level_1.html)
+An interactive playground for standard eternal vertex cover problems on Randomly Generated Bipartite Graphs. Test your defensive strategies against an adaptive attacker.
+
+2. Strict Chain Graph Challenge (level_2.html)
+
+
 
 📖 The Mathematics
 
@@ -51,4 +58,7 @@ The following demonstration provides a walkthrough of a typical gameplay session
 
 *(If the text above isn't clickable, just click or copy this direct URL: (https://kumarrhimanshu.github.io/GAME_on_graph/)*
 
+
+Maintainer
+Himanshu Kumar | Ph.D. Scholar, Mathematics | IIT Ropar
 
